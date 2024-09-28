@@ -321,7 +321,7 @@ BEGIN
 
 
   foptions := opts.populateOptions(options);
-
+(*
   IF opts.findOpt("-h", options) # NIL THEN
     opts.showHelp(options);
     HALT(1)
@@ -333,11 +333,11 @@ BEGIN
     opts.showHelp(options);
     HALT(1);
   END;
-
+*)
   (* Debugging: Look for the file option explicitly *)
   Out.String("Looking for value of option: -f"); Out.Ln;
   opts.valOfOpt("-f", foptions, tfile);
-
+  Out.String ("tfile is "); Out.String(tfile); Out.Ln;
   IF tfile # "" THEN
     Out.String("File specified: "); Out.String(tfile); Out.Ln;
 
