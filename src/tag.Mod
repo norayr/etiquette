@@ -377,6 +377,8 @@ BEGIN
     FilterByTag(ttag);
   ELSE
     Out.String("Invalid option or no file specified."); Out.Ln;
+    opts.showHelp(options);
+    HALT(1);
   END;
 END processArgs;
 
