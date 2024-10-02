@@ -1,6 +1,5 @@
 MODULE tag;
-IMPORT Out, Strings := ooc2Strings,
-       opts, xattr, StringList, strTypes, strUtils;
+IMPORT Out, Strings := ooc2Strings, opts, xattr, StringList, strTypes, strUtils, UnixFS;
 
 VAR
   namespace, field, userTags: ARRAY 64 OF CHAR;
@@ -11,10 +10,8 @@ VAR
 BEGIN
   index := StringList.IndexOf(tags, tag);
   IF index >= 0 THEN
-    Out.String("Tag '"); Out.String(tag); Out.String("' found at index "); Out.Int(index, 0);  Out.Ln;
     RETURN TRUE;
   ELSE
-    Out.String("Tag '"); Out.String(tag); Out.String("' not found in list."); Out.Ln;
     RETURN FALSE;
   END;
 END FoundTag;
@@ -25,36 +22,21 @@ VAR
   tempTag: ARRAY 256 OF CHAR;
   tempRes: LONGINT;
 BEGIN
-  Out.String("CommaSeparatedToStringList called"); Out.Ln;
   startPos := 0;
   i := 0;
 
   WHILE i <= Strings.Length(input) DO
     IF (input[i] = ',') OR (input[i] = 0X) THEN
-      (* Extract the tag *)
       length := i - startPos;
       IF length > 0 THEN
         Strings.Extract(input, startPos, length, tempTag);
-        tempTag[length] := 0X; (* Null-terminate the string *)
-
-        (* Skip any leading or trailing spaces *)
+        tempTag[length] := 0X;
         IF tempTag[0] = ' ' THEN
           Strings.Extract(tempTag, 1, length - 1, tempTag);
         END;
-
-        (* Debugging output to show the extracted tag and each character *)
-        Out.String("Extracted tag: '"); Out.String(tempTag); Out.String("'. Characters: ");
-        FOR startPos := 0 TO Strings.Length(tempTag) - 1 DO
-          Out.Char(tempTag[startPos]); Out.String("("); Out.Int(ORD(tempTag[startPos]), 0); Out.String(") ");
-        END;
-        Out.Ln;
-
-        (* Add the tag to the list *)
         tempRes := StringList.AddString(ttags, tempTag);
       END;
-
-      (* Move startPos to the next position after the comma *)
-      startPos := i + 2; (* Skip over ", " if there's a space after the comma *)
+      startPos := i + 2;
     END;
     INC(i);
   END;
@@ -267,6 +249,36 @@ BEGIN
   tmpres := xattr.RemoveAttr(path, userTags);
 END ClearTags;
 
+PROCEDURE FilterByTag(tag: ARRAY OF CHAR);
+VAR
+  fileList: UnixFS.list;
+  tags: ARRAY 1024 OF CHAR;
+  ttags: StringList.TStringList;
+  i, res: LONGINT;
+BEGIN
+  (* List all files in the current directory *)
+  UnixFS.ListDir(".", fileList);
+
+  (* Process each file *)
+  i := 0;
+  REPEAT
+    (* Get the tags associated with the file *)
+    res := xattr.GetAttr(fileList^[i].name, userTags, tags, LEN(tags));
+
+    IF res >= 0 THEN
+      (* Convert the comma-separated string to a TStringList *)
+      ttags := StringList.Create();
+      CommaSeparatedToStringList(tags, ttags);
+
+      (* Check if the tag exists in the file's tags *)
+      IF FoundTag(ttags, tag) THEN
+        Out.String("File: "); Out.String(fileList^[i].name); Out.Ln;
+      END;
+    END;
+    INC(i)
+  UNTIL i = LEN(fileList^) - 1;
+END FilterByTag;
+
 PROCEDURE processArgs;
 VAR
   options: opts.Options;
@@ -308,6 +320,13 @@ BEGIN
   options.add(options, opt);
 
   opt := opts.createOpt();
+  opts.setOptName(opt, "-F");
+  opts.setOptLName(opt, "--filter");
+  opts.setOptHasVal(opt, TRUE);
+  opts.setOptDesc(opt, "filter files by tag");
+  options.add(options, opt);
+
+  opt := opts.createOpt();
   opts.setOptName(opt, "-h");
   opts.setOptLName(opt, "--help");
   opts.setOptDesc(opt, "show this help");
@@ -332,29 +351,28 @@ BEGIN
   END;
 
   (* Now process the options *)
-  Out.String("Looking for value of option: -f"); Out.Ln;
-  opts.valOfOpt("-f", foptions, tfile);
-  Out.String("tfile is "); Out.String(tfile); Out.Ln;
+  IF opts.findOpt("-f", foptions) # NIL THEN
+    opts.valOfOpt("-f", foptions, tfile);
+  END;
 
-  IF tfile # "" THEN
-    Out.String("File specified: "); Out.String(tfile); Out.Ln;
-
-    IF opts.findOpt("-a", foptions) # NIL THEN
-      opts.valOfOpt("-a", foptions, ttag);
-      AddTag(tfile, ttag);
-    ELSIF opts.findOpt("-d", foptions) # NIL THEN
-      opts.valOfOpt("-d", foptions, ttag);
-      DeleteTag(tfile, ttag);
-    ELSIF opts.findOpt("-C", foptions) # NIL THEN
-      ClearTags(tfile);
-    ELSIF opts.findOpt("-l", foptions) # NIL THEN
-      ListTags(tfile);
-    END;
+  IF opts.findOpt("-a", foptions) # NIL THEN
+    opts.valOfOpt("-a", foptions, ttag);
+    AddTag(tfile, ttag);
+  ELSIF opts.findOpt("-d", foptions) # NIL THEN
+    opts.valOfOpt("-d", foptions, ttag);
+    DeleteTag(tfile, ttag);
+  ELSIF opts.findOpt("-C", foptions) # NIL THEN
+    ClearTags(tfile);
+  ELSIF opts.findOpt("-l", foptions) # NIL THEN
+    ListTags(tfile);
+  ELSIF opts.findOpt("-F", foptions) # NIL THEN
+    opts.valOfOpt("-F", foptions, ttag);
+    Out.String("Filtering files by tag: "); Out.String(ttag); Out.Ln;
+    FilterByTag(ttag);
   ELSE
-    Out.String("File must be specified with -f"); Out.Ln;
+    Out.String("Invalid option or no file specified."); Out.Ln;
   END;
 END processArgs;
-
 
 BEGIN
   COPY("user", namespace);
@@ -364,4 +382,3 @@ BEGIN
   Strings.Append(field, userTags);
   processArgs;
 END tag.
-
