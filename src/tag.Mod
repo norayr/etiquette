@@ -11,7 +11,7 @@ VAR
 BEGIN
   index := StringList.IndexOf(tags, tag);
   IF index >= 0 THEN
-    Out.String("Tag '"); Out.String(tag); Out.String("' found at index "); Out.Int(index, 0); Out.Ln;
+    Out.String("Tag '"); Out.String(tag); Out.String("' found at index "); Out.Int(index, 0);  Out.Ln;
     RETURN TRUE;
   ELSE
     Out.String("Tag '"); Out.String(tag); Out.String("' not found in list."); Out.Ln;
@@ -277,38 +277,34 @@ BEGIN
   options := opts.createOptions();
   foptions := opts.createOptions();
 
+  (* Add all the options *)
   opt := opts.createOpt();
   opts.setOptName(opt, "-a");
   opts.setOptLName(opt, "--add");
   opts.setOptHasVal(opt, TRUE);
   opts.setOptDesc(opt, "add a tag");
-  opts.setOptRequired(opt, FALSE);
   options.add(options, opt);
 
   opt := opts.createOpt();
   opts.setOptName(opt, "-f");
   opts.setOptLName(opt, "--file");
   opts.setOptHasVal(opt, TRUE);
-  opts.setOptRequired(opt, FALSE);
   options.add(options, opt);
 
   opt := opts.createOpt();
   opts.setOptName(opt, "-d");
   opts.setOptLName(opt, "--delete");
   opts.setOptHasVal(opt, TRUE);
-  opts.setOptRequired(opt, FALSE);
   options.add(options, opt);
 
   opt := opts.createOpt();
   opts.setOptName(opt, "-C");
   opts.setOptLName(opt, "--clear");
-  opts.setOptRequired(opt, FALSE);
   options.add(options, opt);
 
   opt := opts.createOpt();
   opts.setOptName(opt, "-l");
   opts.setOptLName(opt, "--list");
-  opts.setOptRequired(opt, FALSE);
   options.add(options, opt);
 
   opt := opts.createOpt();
@@ -316,32 +312,33 @@ BEGIN
   opts.setOptLName(opt, "--help");
   opts.setOptDesc(opt, "show this help");
   opts.setOptHasVal(opt, FALSE);
-  opts.setOptRequired(opt, FALSE);
   options.add(options, opt);
 
-
+  (* Populate options from command-line *)
   foptions := opts.populateOptions(options);
-(*
-  IF opts.findOpt("-h", options) # NIL THEN
+
+  (* Handle the help flag first *)
+  IF opts.findOpt("-h", foptions) # NIL THEN
     opts.showHelp(options);
-    HALT(1)
+    HALT(1);
   END;
 
+  (* Check if required options are satisfied *)
   IF opts.reqsSatisfied(options, foptions) THEN
     Out.String("Required options provided"); Out.Ln;
   ELSE
     opts.showHelp(options);
     HALT(1);
   END;
-*)
-  (* Debugging: Look for the file option explicitly *)
+
+  (* Now process the options *)
   Out.String("Looking for value of option: -f"); Out.Ln;
   opts.valOfOpt("-f", foptions, tfile);
-  Out.String ("tfile is "); Out.String(tfile); Out.Ln;
+  Out.String("tfile is "); Out.String(tfile); Out.Ln;
+
   IF tfile # "" THEN
     Out.String("File specified: "); Out.String(tfile); Out.Ln;
 
-    (* Handle other options *)
     IF opts.findOpt("-a", foptions) # NIL THEN
       opts.valOfOpt("-a", foptions, ttag);
       AddTag(tfile, ttag);
@@ -357,6 +354,7 @@ BEGIN
     Out.String("File must be specified with -f"); Out.Ln;
   END;
 END processArgs;
+
 
 BEGIN
   COPY("user", namespace);
