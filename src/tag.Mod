@@ -47,9 +47,9 @@ VAR
   i: LONGINT;
   tempStr: strTypes.pstring;
 BEGIN
-  Out.String("entered StringListToCommaSeparated"); Out.Ln;
+  (*Out.String("entered StringListToCommaSeparated"); Out.Ln;
   Out.String("got ttags:"); Out.Ln;
-  StringList.DumpOut(ttags);
+  StringList.DumpOut(ttags);*)
 
   totalLength := 0;
   xattr.zeroStr(output); (* Clear the output string *)
@@ -74,7 +74,9 @@ BEGIN
   output[totalLength] := 0X;
 
   (* Debugging output to verify the final result *)
-  Out.String("Final output='"); Out.String(output); Out.Char("'"); Out.Ln;
+  (*Out.String("Final output='");*)
+  Out.String(output);
+  (*Out.Char("'"); Out.Ln;*)
 END StringListToCommaSeparated;
 
 PROCEDURE AddTag(path, tag: ARRAY OF CHAR);
@@ -86,6 +88,7 @@ VAR
 BEGIN
   (* Retrieve the list of xattr attributes *)
   ttags := xattr.ListAttr(path, tags, LEN(tags));
+  (*
   IF ttags # NIL THEN
     Out.String("ttags := xattr.ListAttr"); Out.Ln;
     StringList.DumpOut(ttags);
@@ -93,7 +96,7 @@ BEGIN
   ELSE
     Out.String("ttags not found, ListAttr returned NIL"); Out.Ln;
   END;
-
+  *)
   IF ttags = NIL THEN
     ttags := StringList.Create();
   ELSE
@@ -114,10 +117,11 @@ BEGIN
 
   (* Check if the tag already exists *)
   IF ~FoundTag(ttags, tag) THEN
+    (*
     Out.String("tag "); Out.Ln;
     strUtils.dumpChars(tag); Out.Ln;
     Out.String("was not found in ttags"); Out.Ln;
-
+    *)
     (* Add the new tag to the TStringList *)
     tmpres := StringList.AddString(ttags, tag);
 
@@ -148,7 +152,7 @@ BEGIN
     CommaSeparatedToStringList(tags, ttags);
 
     (* Dump the list of tags *)
-    Out.String("Tags: ");
+    (*Out.String("Tags: ");*)
     StringList.DumpOut(ttags);
   ELSE
     Out.String("No tags found"); Out.Ln;
@@ -163,19 +167,21 @@ BEGIN
   Out.String("Attempting to remove tag: '"); Out.String(tag); Out.String("'"); Out.Ln;
 
   (* Dump the current list of tags for debugging *)
+  (*
   Out.String("Current tags in the list:"); Out.Ln;
   FOR index := 0 TO tags.Count - 1 DO
     foundTag := StringList.GetString(tags, index);
     Out.String("Tag in list ["); Out.Int(index, 0); Out.String("]: '"); Out.String(foundTag^); Out.String("'"); Out.Ln;
   END;
+  *)
 
   (* Now attempt to find and remove the tag *)
   index := StringList.IndexOf(tags, tag);
   IF index >= 0 THEN
-    Out.String("Removing tag: '"); Out.String(tag); Out.String("' at index "); Out.Int(index, 0); Out.Ln;
+    (*Out.String("Removing tag: '"); Out.String(tag); Out.String("' at index "); Out.Int(index, 0); Out.Ln;*)
     tags.Delete(tags, index);  (* Delete the tag at the found index *)
   ELSE
-    Out.String("Tag '"); Out.String(tag); Out.String("' not found in TStringList"); Out.Ln;
+    Out.String("Tag '"); Out.String(tag); Out.String("' not found."); Out.Ln;
   END;
 END RemoveTag;
 
@@ -206,8 +212,10 @@ BEGIN
         (* Check if nodeToRemove is NIL before proceeding *)
         IF nodeToRemove # NIL THEN
           (* Debugging: Output the tag being removed *)
+          (*
           Out.String("Removing tag: '"); Out.String(nodeToRemove.obj(StringList.TString).str^);
           Out.String("' at index "); Out.Int(idx, 0); Out.Ln;
+          *)
 
           IF ttags.DeleteNode(ttags, nodeToRemove) THEN
             Out.String("Node deleted successfully."); Out.Ln;
@@ -272,7 +280,7 @@ BEGIN
 
       (* Check if the tag exists in the file's tags *)
       IF FoundTag(ttags, tag) THEN
-        Out.String("File: "); Out.String(fileList^[i].name); Out.Ln;
+        (*Out.String("File: ");*) Out.String(fileList^[i].name); Out.Ln;
       END;
     END;
     INC(i)
@@ -343,9 +351,7 @@ BEGIN
   END;
 
   (* Check if required options are satisfied *)
-  IF opts.reqsSatisfied(options, foptions) THEN
-    Out.String("Required options provided"); Out.Ln;
-  ELSE
+  IF ~opts.reqsSatisfied(options, foptions) THEN
     opts.showHelp(options);
     HALT(1);
   END;
@@ -367,7 +373,7 @@ BEGIN
     ListTags(tfile);
   ELSIF opts.findOpt("-F", foptions) # NIL THEN
     opts.valOfOpt("-F", foptions, ttag);
-    Out.String("Filtering files by tag: "); Out.String(ttag); Out.Ln;
+    (*Out.String("Filtering files by tag: "); Out.String(ttag); Out.Ln;*)
     FilterByTag(ttag);
   ELSE
     Out.String("Invalid option or no file specified."); Out.Ln;
