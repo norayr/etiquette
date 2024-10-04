@@ -211,19 +211,24 @@ BEGIN
   (* Process each file *)
   i := 0;
   REPEAT
-    (* Get the tags associated with the file *)
+    (* Get the tags associated with the file for the specified namespace *)
     res := xattr.GetAttr(fileList^[i].name, userTags, tags, LEN(tags));
 
     IF res >= 0 THEN
       ttags := StringList.Create();
       CommaSeparatedToStringList(tags, ttags);
 
+      (* Check if the tag exists in the file's tags for the correct namespace *)
       IF FoundTag(ttags, tag) THEN
+        (*Out.String("File with tag '"); Out.String(tag); Out.String("' found: "); *)
         Out.String(fileList^[i].name); Out.Ln;
       END;
+    (*ELSE*)
+      (* No tags found in the current file for this namespace *)
+      (*Out.String("No tags found in file: "); Out.String(fileList^[i].name); Out.Ln;*)
     END;
-    INC(i)
-  UNTIL i = LEN(fileList^) - 1;
+    INC(i);
+  UNTIL i = LEN(fileList^);
 END FilterByTag;
 
 PROCEDURE processArgs;
