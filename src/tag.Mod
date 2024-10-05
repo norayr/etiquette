@@ -3,6 +3,7 @@ IMPORT Out, Strings := ooc2Strings, opts, xattr, StringList, strTypes, strUtils,
 
 VAR
   namespace, field, userTags: ARRAY 64 OF CHAR;
+  verbose: BOOLEAN;
 
 PROCEDURE SetNamespace(prefix: ARRAY OF CHAR);
 BEGIN
@@ -79,7 +80,9 @@ BEGIN
         INC(totalLength, Strings.Length(tempStr^));
       END;
     ELSE
+      IF verbose THEN
       Out.String("Skipping namespace '"); Out.String(userTags); Out.String("' as a tag"); Out.Ln;
+      END
     END;
   END;
 
@@ -87,7 +90,9 @@ BEGIN
   output[totalLength] := 0X;
 
   (* Debugging output to verify the final result *)
-  Out.String(output); Out.Ln;
+  IF verbose THEN
+    Out.String(output); Out.Ln;
+  END
 END StringListToCommaSeparated;
 
 PROCEDURE AddTag(path, tag: ARRAY OF CHAR);
@@ -110,7 +115,9 @@ BEGIN
 
   (* Ensure the namespace itself is NOT treated as a tag *)
   IF FoundTag(ttags, userTags) THEN
-    Out.String("Skipping namespace '"); Out.String(userTags); Out.String("' as a tag"); Out.Ln;
+    IF verbose THEN
+      Out.String("Skipping namespace '"); Out.String(userTags); Out.String("' as a tag"); Out.Ln;
+    END
   ELSE
     (* Check if the tag already exists in this namespace *)
     IF ~FoundTag(ttags, tag) THEN
@@ -118,13 +125,16 @@ BEGIN
       StringListToCommaSeparated(ttags, tags, totalLength);
 
       (* Debugging: Show what we're about to store *)
-      Out.String("Storing tags: '"); Out.String(tags); Out.String("' under namespace '"); Out.String(userTags); Out.String("'"); Out.Ln;
-
+      IF verbose THEN
+        Out.String("Storing tags: '"); Out.String(tags); Out.String("' under namespace '"); Out.String(userTags); Out.String("'"); Out.Ln;
+      END;
       res := xattr.SetAttr(path, userTags, tags, totalLength, 0);
       IF res < 0 THEN
         Out.String("Error adding tag to namespace "); Out.String(userTags); Out.Ln;
       ELSE
-        Out.String("Tag '"); Out.String(tag); Out.String("' successfully added to namespace "); Out.String(userTags); Out.Ln;
+        IF verbose THEN
+          Out.String("Tag '"); Out.String(tag); Out.String("' successfully added to namespace "); Out.String(userTags); Out.Ln;
+        END
       END;
     ELSE
       Out.String("Tag '"); Out.String(tag); Out.String("' already exists in namespace "); Out.String(userTags); Out.Ln;
@@ -220,12 +230,16 @@ BEGIN
 
       (* Check if the tag exists in the file's tags for the correct namespace *)
       IF FoundTag(ttags, tag) THEN
-        (*Out.String("File with tag '"); Out.String(tag); Out.String("' found: "); *)
-        Out.String(fileList^[i].name); Out.Ln;
+        IF verbose THEN
+          Out.String("File with tag '"); Out.String(tag); Out.String("' found: ");
+        END;
+          Out.String(fileList^[i].name); Out.Ln;
       END;
-    (*ELSE*)
+    ELSE
+      IF verbose THEN
       (* No tags found in the current file for this namespace *)
-      (*Out.String("No tags found in file: "); Out.String(fileList^[i].name); Out.Ln;*)
+      Out.String("No tags found in file: "); Out.String(fileList^[i].name); Out.Ln;
+      END
     END;
     INC(i);
   UNTIL i = LEN(fileList^);
@@ -292,6 +306,13 @@ BEGIN
   opts.setOptDesc(opt, "specify xattr namespace");
   options.add(options, opt);
 
+  opt := opts.createOpt();
+  opts.setOptName(opt, "-v");
+  opts.setOptLName(opt, "--verbose");
+  opts.setOptHasVal(opt, FALSE);
+  opts.setOptDesc(opt, "verbose output");
+  options.add(options, opt);
+
   (* Populate options from command-line *)
   foptions := opts.populateOptions(options);
 
@@ -305,6 +326,11 @@ BEGIN
   IF ~opts.reqsSatisfied(options, foptions) THEN
     opts.showHelp(options);
     HALT(1);
+  END;
+
+  verbose := FALSE;
+  IF opts.findOpt("-v", foptions) # NIL THEN
+    verbose := TRUE
   END;
 
   (* Set namespace based on -p option *)
