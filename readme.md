@@ -5,7 +5,7 @@ An Oberon tool to tag files by using file system extended attributes.
 This video presents how it works: https://toobnix.org/w/43z3xJSwZRU2iBNZPZkChv
 
 ## Options
-
+```
 options:
 
 -a, --add = VALUE
@@ -26,5 +26,6 @@ options:
                specify xattr namespace
 -v, --verbose
                verbose output
+```
 
 Inspired by Wizzup's [python tag tool](http://hetgrotebos.org/wiki/neversearch).
